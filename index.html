@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <script src="tailwindcss.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @media (max-width: 640px) {
+            .sidebar-open {
+                width: 100% !important;
+                position: absolute;
+                z-index: 50;
+                height: 100%;
+            }
+            .sidebar-closed {
+                width: 80px;
+            }
+            .content-hidden {
+                display: none;
+            }
+            .main-chat-hidden {
+                opacity: 0;
+            }
+        }
+        
+        .message-modal {
+            transform: scale(0);
+            transform-origin: top left;
+            transition: transform 0.2s ease-out;
+        }
+        
+        .message-modal.show {
+            transform: scale(1);
+        }
+
+        .modal-option:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            background-color: #1a1a1a;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .edit-buttons {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .edit-buttons.show {
+            display: flex;
+        }
+
+        .edit-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            width: 100%;
+            color: inherit;
+            font-size: inherit;
+            font-family: inherit;
+            padding: 0;
+            margin: 0;
+        }
+
+        .editing {
+            border: 2px solid #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container-fluid mx-auto h-screen">
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden h-full flex relative">
+            <!-- Left Sidebar -->
+            <div id="sidebar" class="relative sm:w-80 bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 ease-in-out sidebar-closed sm:sidebar-open">
+                <!-- User Profile with Menu Button -->
+                <div class="p-2 sm:p-4 border-b relative">
+                    <div class="flex items-center">
+                        <!-- Menu Button -->
+                        <button id="menuBtn" class="sm:hidden p-2 hover:bg-gray-100 rounded-full mr-2">
+                            <i class="fas fa-bars text-gray-600"></i>
+                        </button>
+                        <img src="https://i.pravatar.cc/150?img=32" class="w-10 h-10 rounded-full" alt="Profile">
+                        <div class="content-section ml-3">
+                            <h2 class="font-semibold">Carter Donin</h2>
+                            <p class="text-sm text-gray-500">UI/UX Designer</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="content-section p-4">
+                    <div class="relative">
+                        <input type="text" placeholder="Search" class="w-full px-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none">
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+
+                <!-- Chat List -->
+                <div class="flex-1 overflow-y-auto">
+                    <div class="space-y-2">
+                        <!-- Chat Items -->
+                        <div class="px-2 sm:px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                            <div class="flex items-center space-x-2 sm:space-x-3">
+                                <img src="https://i.pravatar.cc/150?img=59" class="w-10 h-10 rounded-full" alt="Contact">
+                                <div class="content-section flex-1">
+                                    <h3 class="font-medium">Design Chat</h3>
+                                    <p class="text-sm text-gray-500 truncate">Latest message here...</p>
+                                </div>
+                                <span class="content-section text-xs text-gray-400">12:30</span>
+                            </div>
+                        </div>
+                        <div class="px-2 sm:px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                            <div class="flex items-center space-x-2 sm:space-x-3">
+                                <img src="https://i.pravatar.cc/150?img=44" class="w-10 h-10 rounded-full" alt="Contact">
+                                <div class="content-section flex-1">
+                                    <h3 class="font-medium">Johnson Smith</h3>
+                                    <p class="text-sm text-gray-500 truncate">Hey, check this out!</p>
+                                </div>
+                                <span class="content-section text-xs text-gray-400">11:45</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div id="mainChat" class="flex-1 flex flex-col transition-opacity duration-300">
+                <!-- Chat Header -->
+                <div class="p-2 sm:p-4 border-b flex items-center justify-between">
+                    <div class="flex items-center space-x-2 sm:space-x-4">
+                        <div class="flex -space-x-2">
+                            <img src="https://i.pravatar.cc/150?img=12" class="w-8 h-8 rounded-full border-2 border-white" alt="Group">
+                            <img src="https://i.pravatar.cc/150?img=23" class="w-8 h-8 rounded-full border-2 border-white" alt="Group">
+                            <img src="https://i.pravatar.cc/150?img=34" class="w-8 h-8 rounded-full border-2 border-white" alt="Group">
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-sm sm:text-base">Design Chat</h2>
+                            <p class="text-xs sm:text-sm text-gray-500">28 members</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 sm:space-x-4">
+                        <button class="p-2 hover:bg-gray-100 rounded-full">
+                            <i class="fas fa-phone text-gray-600 text-sm sm:text-base"></i>
+                        </button>
+                        <button class="p-2 hover:bg-gray-100 rounded-full hidden sm:block">
+                            <i class="fas fa-video text-gray-600"></i>
+                        </button>
+                        <button class="p-2 hover:bg-gray-100 rounded-full">
+                            <i class="fas fa-info-circle text-gray-600 text-sm sm:text-base"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="flex-1 overflow-y-auto p-2 sm:p-4 space-y-4">
+                    <!-- Message bubbles -->
+                    <div class="flex items-start space-x-2 group relative">
+                        <img src="https://i.pravatar.cc/150?img=45" class="w-8 h-8 rounded-full" alt="User">
+                        <div class="bg-gray-100 rounded-2xl p-2 sm:p-3 max-w-[75%] sm:max-w-md cursor-pointer message-container">
+                            <p class="text-sm">Hi, how long does it take to finalize the page?</p>
+                            <!-- Edit Buttons -->
+                            <div class="edit-buttons justify-end space-x-2">
+                                <button class="cancel-edit px-3 py-1 rounded text-sm text-gray-600 hover:bg-gray-200">
+                                    Cancel
+                                </button>
+                                <button class="save-edit px-3 py-1 rounded text-sm text-white bg-blue-500 hover:bg-blue-600">
+                                    Save
+                                </button>
+                            </div>
+                            <!-- Message Modal -->
+                            <div class="message-modal absolute left-0 mt-2 bg-white rounded-xl shadow-lg p-1 z-50">
+                                <div class="flex flex-col w-36">
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm">
+                                        <i class="fas fa-reply text-gray-600"></i>
+                                        <span>Reply</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm">
+                                        <i class="fas fa-pen text-gray-600"></i>
+                                        <span>Edit</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm">
+                                        <i class="fas fa-copy text-gray-600"></i>
+                                        <span>Copy</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm">
+                                        <i class="fas fa-forward text-gray-600"></i>
+                                        <span>Forward</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-2 justify-end group relative">
+                        <div class="bg-blue-500 text-white rounded-2xl p-2 sm:p-3 max-w-[75%] sm:max-w-md cursor-pointer message-container">
+                            <p class="text-sm">Super, we will definitely use!</p>
+                            <!-- Edit Buttons -->
+                            <div class="edit-buttons justify-end space-x-2">
+                                <button class="cancel-edit px-3 py-1 rounded text-sm text-white/70 hover:text-white hover:bg-white/10">
+                                    Cancel
+                                </button>
+                                <button class="save-edit px-3 py-1 rounded text-sm text-white bg-white/20 hover:bg-white/30">
+                                    Save
+                                </button>
+                            </div>
+                            <!-- Message Modal -->
+                            <div class="message-modal absolute right-0 mt-2 bg-white rounded-xl shadow-lg p-1 z-50">
+                                <div class="flex flex-col w-36">
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-700">
+                                        <i class="fas fa-reply text-gray-600"></i>
+                                        <span>Reply</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-700">
+                                        <i class="fas fa-pen text-gray-600"></i>
+                                        <span>Edit</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-700">
+                                        <i class="fas fa-copy text-gray-600"></i>
+                                        <span>Copy</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-gray-700">
+                                        <i class="fas fa-forward text-gray-600"></i>
+                                        <span>Forward</span>
+                                    </button>
+                                    <button class="modal-option flex items-center space-x-2 px-3 py-2 rounded-lg text-sm text-red-500">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="p-2 sm:p-4 border-t">
+                    <div class="flex items-center space-x-2 sm:space-x-4">
+                        <button class="p-2 hover:bg-gray-100 rounded-full">
+                            <i class="fas fa-plus text-gray-600 text-sm sm:text-base"></i>
+                        </button>
+                        <div class="flex-1">
+                            <input type="text" placeholder="Type Something..." class="w-full px-3 sm:px-4 py-2 rounded-full bg-gray-100 focus:outline-none text-sm">
+                        </div>
+                        <button class="p-2 hover:bg-gray-100 rounded-full">
+                            <i class="fas fa-paper-plane text-blue-500 text-sm sm:text-base"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div class="w-80 border-l border-gray-200 hidden lg:block">
+                <div class="p-4">
+                    <h2 class="font-semibold mb-4">Group Info</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <h3 class="text-sm text-gray-500">Description</h3>
+                            <p class="text-sm">There are super creative people in the chat, everyone's favorite designers who make this world a better place.</p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm text-gray-500">Members (28)</h3>
+                            <div class="mt-2 space-y-2">
+                                <!-- Member items -->
+                                <div class="flex items-center space-x-2">
+                                    <img src="https://i.pravatar.cc/150?img=56" class="w-8 h-8 rounded-full" alt="Member">
+                                    <span class="text-sm">Airic Theron</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <img src="https://i.pravatar.cc/150?img=47" class="w-8 h-8 rounded-full" alt="Member">
+                                    <span class="text-sm">Nina Dobrev</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <img src="https://i.pravatar.cc/150?img=38" class="w-8 h-8 rounded-full" alt="Member">
+                                    <span class="text-sm">Denise Fox</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="toast-notification">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-check text-green-500"></i>
+            <span>Message copied to clipboard!</span>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+   
+</body>
+</html> 
